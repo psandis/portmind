@@ -1,6 +1,6 @@
 {
   "name": "portmind-monorepo",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Local-first CLI + web dashboard that scans listening ports, enriches them with process/Docker/IANA detail, and remembers what normally runs where.",
   "keywords": [
     "cli",

@@ -2,7 +2,7 @@ import { createServer as createHttpServer, type Server } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { scanPorts, loadConfig } from "@portmind/core";
+import { scanPorts, loadConfig, explainPort, ConfigError, type PortEntry } from "@portmind/core";
 
 const packageRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const indexHtmlPath = path.join(packageRoot, "static", "index.html");
@@ -15,9 +15,11 @@ export interface WebServerOptions {
 
 /**
  * Local-only dashboard server. Binds to 127.0.0.1 by default (per spec:
- * "no external network exposure by default"). Only two routes: the static
- * page, and a JSON API that returns the same PortEntry[] shape as
- * `portmind list --json`.
+ * "no external network exposure by default"). Three routes: the static
+ * page, a JSON API returning the same PortEntry[] shape as
+ * `portmind list --json`, and an AI explain endpoint that only ever fires
+ * on an explicit client request (the page's "Explain with AI" button),
+ * never automatically.
  */
 export function createWebServer(options: WebServerOptions): Server {
   const host = options.host ?? "127.0.0.1";
@@ -31,6 +33,21 @@ export function createWebServer(options: WebServerOptions): Server {
         const entries = await scanPorts({ includeUdp: config.scan.includeUdp }, config.knownPorts);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(entries));
+        return;
+      }
+
+      if (req.method === "POST" && url.pathname === "/api/explain") {
+        const entry = (await readJsonBody(req)) as PortEntry;
+        const config = await loadConfig();
+        try {
+          const explanation = await explainPort(entry, config);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ explanation }));
+        } catch (error) {
+          const status = error instanceof ConfigError ? 400 : 502;
+          res.writeHead(status, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: (error as Error).message }));
+        }
         return;
       }
 
@@ -48,4 +65,21 @@ export function createWebServer(options: WebServerOptions): Server {
       res.end(JSON.stringify({ error: (error as Error).message }));
     }
   }).listen(options.port, host);
+}
+
+function readJsonBody(req: import("node:http").IncomingMessage): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    let data = "";
+    req.on("data", (chunk) => {
+      data += chunk;
+    });
+    req.on("end", () => {
+      try {
+        resolve(JSON.parse(data));
+      } catch (error) {
+        reject(error);
+      }
+    });
+    req.on("error", reject);
+  });
 }

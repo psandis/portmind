@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-06
+
+### Added
+- `@portmind/core`: AI `explain` feature - provider abstraction for Anthropic (`/v1/messages`) and OpenAI (`/v1/chat/completions`), selected via `ai.provider` config with no code changes needed to switch; explicit field allowlist enforcement (`buildExplainPayload`, only sends fields named in `ai.fields_sent`); cmdline secret/token redaction (`sanitizeCmdline`) before anything is sent; SQLite response cache (`ai_explanations` table) keyed by `(process_name, port)` so repeat queries don't re-call the API.
+- `@portmind/cli`: `portmind explain <port>` - opt-in, requires `ai.enabled: true` and an API key in `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`; fails with a clear config error (exit code `2`) rather than doing nothing if unconfigured.
+- `@portmind/web`: `POST /api/explain` endpoint; the dashboard's "Explain with AI" button now makes a real request instead of showing a disabled placeholder.
+- Web dashboard UX fixes: sticky header (title, filter toolbar, and column labels stay pinned while scrolling a long port list) and the detail panel is now a fixed slide-in panel from the right edge with a dimmed overlay, appearing instantly regardless of scroll position, instead of a block at the bottom of the page requiring a scroll to find. The panel now shows "Service name" and "Description" as two separate labeled fields.
+- Vitest coverage: cmdline sanitization patterns, allowlist field selection, provider request-shape verification (mocked `fetch`, exact URL/headers/body per each provider's documented API), cache get/set/overwrite, and the full `explainPort` orchestration (disabled, missing key, cache hit, cache miss - all mocked).
+
+### Known limitations
+- **AI explain has not been tested against a real API key.** Every test mocks the HTTP layer; the request shapes match each provider's documented API as of this writing, but end-to-end correctness against the actual Anthropic/OpenAI services is unverified.
+- The table's DESCRIPTION column and detail panel's "Description" field only populate for ports IANA has actually registered - most macOS system/app processes (e.g. rapportd, ControlCenter, Spotify) aren't registered services, so they correctly show "-" or, for genuinely coincidental port-number matches, an unrelated IANA description for that number.
+
 ## [0.3.0] - 2026-09-06
 
 ### Added

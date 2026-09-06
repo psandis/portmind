@@ -11,3 +11,7 @@ export {
   type LoadedConfigPaths,
 } from "./configLoader.js";
 export type { KnownPortsConfig, KnownPortsIndex } from "./knownPorts/lookup.js";
+export { explainPort, type ExplainDeps } from "./ai/explain.js";
+export { AiProviderError } from "./ai/provider.js";
+export { sanitizeCmdline } from "./ai/sanitize.js";
+export { buildExplainPayload } from "./ai/allowlist.js";

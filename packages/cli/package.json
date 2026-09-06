@@ -1,6 +1,6 @@
 {
   "name": "@portmind/cli",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Local-first CLI that scans listening ports, enriches them with process/Docker/IANA detail, and remembers what normally runs where.",
   "keywords": [
     "cli",

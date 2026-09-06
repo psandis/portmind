@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { execFile } from "node:child_process";
-import { ConfigError, loadConfig, resolveConfigPaths, scanPorts, type PortEntry } from "@portmind/core";
+import {
+  ConfigError,
+  explainPort,
+  loadConfig,
+  resolveConfigPaths,
+  scanPorts,
+  type PortEntry,
+} from "@portmind/core";
 import { createWebServer } from "@portmind/web";
 import { renderTable } from "./renderTable.js";
 
 const program = new Command();
 
-program.name("portmind").description("Local-first port scanning, enrichment and history tool").version("0.3.0");
+program.name("portmind").description("Local-first port scanning, enrichment and history tool").version("0.3.1");
 
 interface ListOptions {
   range?: string;
@@ -86,6 +93,41 @@ program
           console.error(`portmind web: could not open browser automatically (${error.message})`);
         }
       });
+    }
+  });
+
+program
+  .command("explain")
+  .description("Run AI deep-search for a specific port (opt-in, requires ai.enabled: true)")
+  .argument("<port>", "port number to explain")
+  .action(async (portArg: string) => {
+    const port = Number.parseInt(portArg, 10);
+    if (Number.isNaN(port)) {
+      console.error(`portmind explain: invalid port "${portArg}"`);
+      process.exitCode = 2;
+      return;
+    }
+
+    try {
+      const resolvedConfig = await loadConfig();
+      const entries = await scanPorts({ includeUdp: resolvedConfig.scan.includeUdp }, resolvedConfig.knownPorts);
+      const entry = entries.find((e) => e.port === port);
+      if (!entry) {
+        console.error(`portmind explain: nothing is currently listening on port ${port}`);
+        process.exitCode = 1;
+        return;
+      }
+
+      const explanation = await explainPort(entry, resolvedConfig);
+      console.log(explanation);
+    } catch (error) {
+      if (error instanceof ConfigError) {
+        console.error(`portmind explain: ${error.message}`);
+        process.exitCode = 2;
+      } else {
+        console.error(`portmind explain: failed - ${(error as Error).message}`);
+        process.exitCode = 1;
+      }
     }
   });
 

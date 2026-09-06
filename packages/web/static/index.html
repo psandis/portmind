@@ -37,16 +37,24 @@
     background: var(--bg);
     color: var(--fg);
     font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    padding: 24px;
+    padding: 0 24px 24px;
   }
   h1 { font-size: 18px; margin: 0 0 4px; }
-  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  .sub { color: var(--muted); margin: 0 0 12px; font-size: 13px; }
+  .sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--bg);
+    padding-top: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
   .toolbar {
     display: flex;
     gap: 12px;
     align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 16px;
   }
   .toolbar input[type="text"] {
     padding: 6px 10px;
@@ -77,38 +85,71 @@
   button:hover { background: var(--row-hover); }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+  th {
+    position: sticky;
+    top: var(--sticky-header-h, 84px);
+    z-index: 15;
+    background: var(--bg);
+    color: var(--muted);
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    box-shadow: 0 1px 0 var(--border);
+  }
   th:hover { color: var(--fg); }
   tbody tr { cursor: pointer; }
   tbody tr:hover { background: var(--row-hover); }
   .mono { font-family: var(--mono); }
   .unusual { color: var(--danger); font-weight: 600; }
   .empty { color: var(--muted); padding: 24px 0; text-align: center; }
-  .detail {
-    margin-top: 16px;
-    padding: 16px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--panel-bg);
+  .overlay {
     display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.35);
+    z-index: 90;
+  }
+  .overlay.open { display: block; }
+  .detail {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(420px, 100vw);
+    padding: 20px;
+    border-left: 1px solid var(--border);
+    background: var(--panel-bg);
+    z-index: 91;
+    overflow-y: auto;
+    box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
   }
   .detail.open { display: block; }
-  .detail dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; margin: 0; }
+  .detail-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+  .detail h2 { font-size: 15px; margin: 0 0 16px; padding-right: 32px; }
+  .detail dl { display: grid; grid-template-columns: 120px 1fr; gap: 8px 12px; margin: 0; }
   .detail dt { color: var(--muted); }
   .detail dd { margin: 0; word-break: break-all; }
   .status { font-size: 12px; color: var(--muted); margin-top: 12px; }
 </style>
 </head>
 <body>
-  <h1>portmind</h1>
-  <p class="sub">Listening ports on <span id="host">localhost</span></p>
+  <div class="sticky-header" id="stickyHeader">
+    <h1>portmind</h1>
+    <p class="sub">Listening ports on <span id="host">localhost</span></p>
 
-  <div class="toolbar">
-    <button id="refresh">Refresh</button>
-    <label><input type="checkbox" id="autoRefresh" /> Auto-refresh (5s)</label>
-    <input type="text" id="rangeFilter" placeholder="Range e.g. 3000-9000" />
-    <label><input type="checkbox" id="dockerOnly" /> Docker only</label>
-    <label><input type="checkbox" id="unusualOnly" /> Unusual only</label>
+    <div class="toolbar">
+      <button id="refresh">Refresh</button>
+      <label><input type="checkbox" id="autoRefresh" /> Auto-refresh (5s)</label>
+      <input type="text" id="rangeFilter" placeholder="Range e.g. 3000-9000" />
+      <label><input type="checkbox" id="dockerOnly" /> Docker only</label>
+      <label><input type="checkbox" id="unusualOnly" /> Unusual only</label>
+    </div>
   </div>
 
   <table>
@@ -120,13 +161,14 @@
         <th data-key="pid">PID</th>
         <th data-key="docker">DOCKER</th>
         <th data-key="usual">USUAL</th>
-        <th data-key="note">NOTE</th>
+        <th data-key="note">DESCRIPTION</th>
       </tr>
     </thead>
     <tbody id="rows"></tbody>
   </table>
   <div id="empty" class="empty" hidden>No listening ports found.</div>
 
+  <div id="overlay" class="overlay"></div>
   <div id="detail" class="detail"></div>
   <div class="status" id="status"></div>
 
@@ -136,6 +178,7 @@
   var rowsEl = document.getElementById("rows");
   var emptyEl = document.getElementById("empty");
   var detailEl = document.getElementById("detail");
+  var overlayEl = document.getElementById("overlay");
   var statusEl = document.getElementById("status");
   var autoRefreshTimer = null;
 
@@ -201,8 +244,11 @@
   function showDetail(entry) {
     state.selected = entry;
     detailEl.classList.add("open");
+    overlayEl.classList.add("open");
     var explainBtn = "<button id='explainBtn'>Explain with AI</button>";
     detailEl.innerHTML =
+      "<button class='detail-close' id='detailClose'>Close</button>" +
+      "<h2>Port " + entry.port + "/" + entry.protocol + "</h2>" +
       "<dl>" +
       "<dt>Host</dt><dd>" + entry.host + "</dd>" +
       "<dt>Port</dt><dd>" + entry.port + "/" + entry.protocol + "</dd>" +
@@ -212,17 +258,45 @@
       "<dt>Working dir</dt><dd>" + (entry.cwd || "-") + "</dd>" +
       "<dt>Started</dt><dd>" + (entry.startedAt || "-") + "</dd>" +
       "<dt>Docker</dt><dd>" + (entry.docker ? entry.docker.containerName + " (" + entry.docker.image + ")" : "-") + "</dd>" +
-      "<dt>Known service</dt><dd>" + (entry.knownService ? entry.knownService.name + " - " + entry.knownService.description : "-") + "</dd>" +
+      "<dt>Service name</dt><dd>" + (entry.knownService ? entry.knownService.name : "-") + "</dd>" +
+      "<dt>Description</dt><dd>" + (entry.knownService ? entry.knownService.description : "-") + "</dd>" +
       "<dt>Risk flags</dt><dd>" + (entry.riskFlags.length ? entry.riskFlags.join(", ") : "none") + "</dd>" +
-      "<dt>AI explanation</dt><dd>" + (entry.aiExplanation || "not run - " + explainBtn) + "</dd>" +
+      "<dt>AI explanation</dt><dd id='aiExplanation'>" + (entry.aiExplanation || explainBtn) +
+      " <span id='aiError' style='color:var(--danger)'></span></dd>" +
       "</dl>";
     var btn = document.getElementById("explainBtn");
     if (btn) {
       btn.addEventListener("click", function () {
         btn.disabled = true;
-        btn.textContent = "AI explain is not implemented yet";
+        btn.textContent = "Asking AI...";
+        fetch("/api/explain", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(entry),
+        })
+          .then(function (r) {
+            return r.json().then(function (body) {
+              if (!r.ok) throw new Error(body.error || "request failed");
+              return body;
+            });
+          })
+          .then(function (body) {
+            btn.replaceWith(document.createTextNode(body.explanation));
+          })
+          .catch(function (err) {
+            btn.disabled = false;
+            btn.textContent = "Explain with AI";
+            document.getElementById("aiError").textContent = err.message;
+          });
       });
     }
+    document.getElementById("detailClose").addEventListener("click", closeDetail);
+  }
+
+  function closeDetail() {
+    detailEl.classList.remove("open");
+    overlayEl.classList.remove("open");
+    state.selected = null;
   }
 
   function load() {
@@ -260,6 +334,18 @@
       autoRefreshTimer = null;
     }
   });
+
+  overlayEl.addEventListener("click", closeDetail);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") closeDetail();
+  });
+
+  function updateStickyOffset() {
+    var header = document.getElementById("stickyHeader");
+    document.documentElement.style.setProperty("--sticky-header-h", header.offsetHeight + "px");
+  }
+  window.addEventListener("resize", updateStickyOffset);
+  updateStickyOffset();
 
   load();
 })();
