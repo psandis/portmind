@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-06
+
 ### Added
 - Monorepo scaffold (`packages/core`, `packages/cli`) with pnpm workspaces, shared TypeScript config, and Biome for lint/format.
 - `@portmind/core`: `PortEntry` data shape and `PortmindConfig` schema with built-in defaults, matching the spec exactly (AI opt-in and off by default, explicit AI field allowlist).
