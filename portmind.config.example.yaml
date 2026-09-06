@@ -1,0 +1,51 @@
+# Copy this file to one of the two real config locations to change portmind's behavior:
+#   ~/.portmind/config.yaml   (user-wide)
+#   ./.portmind.yaml          (this project only, overrides the user config)
+# Both are optional - portmind runs fine with neither present, using the
+# defaults shown below. Only the keys you actually want to change need to
+# be in your copy; anything you omit falls back to the default.
+
+scan:
+  interval_seconds: 5
+  include_udp: true
+  docker: true
+  ssh_hosts: []
+    # - name: prod-api
+    #   host: prod-api.example.com
+    #   user: deploy
+
+known_ports:
+  source: iana              # iana | custom | both
+  custom_db_path: null      # path to a JSON file: [{port, protocol, service_name, description}, ...]
+  refresh_days: 30
+
+history:
+  enabled: true
+  db_path: ~/.portmind/portmind.db
+  retention_days: 180
+
+risk_rules:
+  flag_bound_all_interfaces: true
+  flag_unsigned_binary: true     # macOS only, no-op elsewhere
+  flag_no_known_service: true
+
+ai:
+  enabled: false                  # opt-in, off by default - must be explicitly turned on
+  provider: anthropic             # anthropic | openai | none
+  model: claude-sonnet-4-6
+  trigger: manual                 # manual only in v1
+  fields_sent:                    # explicit allowlist - nothing outside this list is ever sent
+    - process_name
+    - cmdline
+    - port
+    - protocol
+    - docker_image
+  cmdline_sanitization: true
+
+output:
+  default_format: table           # table | json
+  color: auto                     # auto | always | never
+
+logging:
+  level: info                     # debug | info | warn | error
+  audit_log: false

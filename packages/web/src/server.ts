@@ -2,7 +2,7 @@ import { createServer as createHttpServer, type Server } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { scanPorts, DEFAULT_CONFIG } from "@portmind/core";
+import { scanPorts, loadConfig } from "@portmind/core";
 
 const packageRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const indexHtmlPath = path.join(packageRoot, "static", "index.html");
@@ -27,7 +27,8 @@ export function createWebServer(options: WebServerOptions): Server {
       const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
 
       if (req.method === "GET" && url.pathname === "/api/ports") {
-        const entries = await scanPorts({ includeUdp: DEFAULT_CONFIG.scan.includeUdp });
+        const config = await loadConfig();
+        const entries = await scanPorts({ includeUdp: config.scan.includeUdp }, config.knownPorts);
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify(entries));
         return;

@@ -16,8 +16,11 @@ Local-first CLI + web dashboard that scans listening ports on your machine, enri
 - `--range <min-max>`, `--docker-only`, `--unusual`, and `--json` filters/output modes
 - Table and JSON output share one `PortEntry` type, defined once in `@portmind/core`
 - `portmind web` starts a local-only dashboard (`127.0.0.1`, plain HTML/JS, no framework, no build step) serving the same data as `portmind list --json` over `GET /api/ports`, with a sortable/filterable table and a row-click detail panel
+- Real known-port descriptions via the official IANA Service Name and Port Number Registry (11,394 entries bundled, fetched and verified from `iana.org` — e.g. port 5432 shows "PostgreSQL Database", not a placeholder)
+- A real, working config file loader — `~/.portmind/config.yaml` (user) and `.portmind.yaml` (project) are both read and merged over the defaults; `portmind config show`/`config path` expose the resolved result and file locations
+- `known_ports.source: custom` or `both` in config lets you point at your own JSON file to override or add service descriptions IANA doesn't have (internal services, dev conventions like Redis/MongoDB that aren't officially IANA-registered)
 
-**Not implemented yet** (see [Next steps](#next-steps)): Docker cross-reference, IANA known-port descriptions, local history/"usual" detection, risk flags, `watch`/`free`/`explain`/`history`/`ssh`/`tui`/`config` commands, and the YAML config loader. Until those land, every `PortEntry.docker`, `.knownService`, and `.riskFlags` will be empty, and `.history.usual` is always `true` — so the web dashboard's Docker/unusual filters currently have nothing to filter.
+**Not implemented yet** (see [Next steps](#next-steps)): Docker cross-reference, local history/"usual" detection, risk flags, `watch`/`free`/`explain`/`history`/`ssh`/`tui` commands. Until those land, every `PortEntry.docker` and `.riskFlags` will be empty, and `.history.usual` is always `true` — so the web dashboard's Docker/unusual filters currently have nothing to filter.
 
 See [CHANGELOG.md](./CHANGELOG.md) for a dated record of what shipped when.
 
@@ -56,7 +59,7 @@ Example output:
 ```
 PORT   PROTO  PROCESS       PID     DOCKER  USUAL  NOTE
 3000   tcp    node          41822   -       yes    /Users/you/Projects/react-dashboard
-5432   tcp    postgres      1758    -       yes    /opt/homebrew/var/postgresql@14
+5432   tcp    postgres      1758    -       yes    PostgreSQL Database
 ```
 
 **Exit codes:** `0` success, `1` scan error, `2` config error.
@@ -71,7 +74,16 @@ portmind web --no-open         # don't open the browser automatically
 
 Why a plain server + vanilla JS instead of a framework: the dashboard is two routes (the page, and `/api/ports`), it never leaves your machine, and there's no build pipeline to maintain — consistent with the "local-first, no telemetry" design of the rest of the tool. The page polls `/api/ports` on load and on manual refresh (or a 5-second auto-refresh you opt into); clicking a row expands full detail including an "Explain with AI" button that's currently a disabled placeholder, since AI `explain` (Phase 9) isn't built yet.
 
-Planned commands not yet implemented: `watch`, `free`, `explain`, `history`, `ssh <host> list|check`, `tui`, `config show|path`.
+### Config
+
+```bash
+portmind config show   # print the fully resolved config (defaults + user + project merged), as JSON
+portmind config path   # print ~/.portmind/config.yaml and ./.portmind.yaml, and whether each exists
+```
+
+Copy [portmind.config.example.yaml](./portmind.config.example.yaml) to `~/.portmind/config.yaml` or `./.portmind.yaml` to change behavior — only the keys you include override the defaults, anything omitted falls back. Malformed YAML in a config file that exists is a hard error (exit code `2`), not silently ignored.
+
+Planned commands not yet implemented: `watch`, `free`, `explain`, `history`, `ssh <host> list|check`, `tui`.
 
 ## Storage
 
@@ -79,7 +91,7 @@ History will be stored locally in a SQLite database at `~/.portmind/portmind.db`
 
 ## Configuration
 
-Not implemented yet — there is no config loader, and `~/.portmind/config.yaml` / `.portmind.yaml` are not read. The schema below is the target design (resolution order: built-in defaults → `~/.portmind/config.yaml` → `.portmind.yaml` in the current directory, each layer overriding the previous):
+Real and working. Resolution order (later overrides earlier, and only the keys you actually set are overridden - everything else falls back): built-in defaults → `~/.portmind/config.yaml` (user) → `.portmind.yaml` in the current directory (project). See [portmind.config.example.yaml](./portmind.config.example.yaml) for a copy-and-edit starting point.
 
 ```yaml
 scan:
@@ -125,7 +137,7 @@ logging:
   audit_log: false
 ```
 
-The equivalent TypeScript shape (`PortmindConfig`) and its defaults already exist in [packages/core/src/config.ts](./packages/core/src/config.ts) — only the file-loading/merge logic is missing.
+The TypeScript shape (`PortmindConfig`), its defaults, and the loader/merge logic live in [packages/core/src/config.ts](./packages/core/src/config.ts) and [packages/core/src/configLoader.ts](./packages/core/src/configLoader.ts). Not yet wired to config: `history.retention_days` (history isn't implemented), `risk_rules.*` (risk flags aren't implemented), `known_ports.refresh_days` (the bundled IANA cache doesn't auto-refresh yet - refreshing it means re-fetching the CSV and regenerating `packages/core/data/iana-cache.json`, which isn't automated).
 
 ## Architecture
 
@@ -144,17 +156,17 @@ packages/
 
 Remaining phases, in build order:
 
-1. **IANA enrichment** — fetch/cache the official IANA Service Name and Port Number Registry, populate `PortEntry.knownService`
-2. **History and "usual" detection** — SQLite `observations`/`port_fingerprints` tables, `history <port>` command
-3. **Docker cross-reference** — match `docker ps` output against scanned ports, populate `PortEntry.docker`
-4. **Risk flags** — `bound_all_interfaces`, `unsigned_binary`, `no_known_service`, each independently configurable
-5. **TUI** (`ink` or `blessed` — undecided) — live table with inline `explain`/`free`
-6. **AI `explain`** (opt-in) — provider abstraction, explicit field allowlist, response caching (the web dashboard's "Explain with AI" button is wired up but disabled until this exists)
-7. **SSH remote support** — `ssh_hosts` config, same `PortEntry` shape with `host` set to the remote name
-8. **Config system** — YAML loader/merge (defaults → user → project), `config show`/`config path`, audit logging for `free`/`explain`
+1. **History and "usual" detection** — SQLite `observations`/`port_fingerprints` tables, `history <port>` command
+2. **Docker cross-reference** — match `docker ps` output against scanned ports, populate `PortEntry.docker`
+3. **Risk flags** — `bound_all_interfaces`, `unsigned_binary`, `no_known_service`, each independently configurable
+4. **TUI** (`ink` or `blessed` — undecided) — live table with inline `explain`/`free`
+5. **AI `explain`** (opt-in) — provider abstraction, explicit field allowlist, response caching (the web dashboard's "Explain with AI" button is wired up but disabled until this exists)
+6. **SSH remote support** — `ssh_hosts` config, same `PortEntry` shape with `host` set to the remote name
+7. **Audit logging** — log every `free`/`explain` action per `logging.audit_log`
+8. **IANA cache auto-refresh** — automate re-fetching the CSV on `known_ports.refresh_days`, rather than the current bundled-once snapshot
 9. **Polish** — full `--help` text, packaging for `npm install -g @portmind/cli`
 
-Web dashboard (was phase 6) is done — see [Status](#status).
+Web dashboard, IANA enrichment, and the config file loader (were phases 6, 1, and 11 in the original spec numbering) are done — see [Status](#status).
 
 Two decisions still open: TUI library (`ink` vs `blessed`), and whether `free` on a Docker-backed port needs anything beyond the interactive stop/kill/cancel prompt already agreed on.
 

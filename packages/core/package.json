@@ -1,6 +1,6 @@
 {
   "name": "@portmind/core",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "portmind core - scanning, enrichment, data model, config, history. No UI, no AI dependency.",
   "homepage": "https://github.com/psandis/portmind#readme",
   "bugs": "https://github.com/psandis/portmind/issues",
@@ -19,7 +19,8 @@
     "access": "public"
   },
   "files": [
-    "dist"
+    "dist",
+    "data"
   ],
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -32,7 +33,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "better-sqlite3": "^13.0.3"
+    "better-sqlite3": "^13.0.3",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",

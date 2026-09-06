@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-06
+
+### Added
+- `@portmind/core`: real IANA known-port lookup - CSV fetched and verified directly from `iana.org`, parsed into 11,394 real entries, bundled as `packages/core/data/iana-cache.json` so lookups work fully offline. `PortEntry.knownService` is now populated for any port with an official registration (e.g. `5432` -> "PostgreSQL Database", `3306` -> "MySQL").
+- `@portmind/core`: real config file loader (`configLoader.ts`) - reads and deep-merges `~/.portmind/config.yaml` (user) and `.portmind.yaml` (project) over the built-in defaults. A config file that exists but fails to parse throws `ConfigError`, mapped to CLI exit code `2`. `known_ports.source: custom|both` + `custom_db_path` let a JSON file override or extend IANA (e.g. for internal services or dev-convention ports like Redis/MongoDB that IANA doesn't register).
+- `@portmind/cli`: `portmind config show` (prints the fully resolved config as JSON) and `portmind config path` (prints both config file locations and whether each exists).
+- `portmind.config.example.yaml` at repo root - copy-and-edit starting point for either config location.
+- `scanPorts()` in `core` now takes a `knownPorts` config parameter (defaulting to `DEFAULT_CONFIG.knownPorts`), and both CLI `list` and the web server's `/api/ports` load real config via `loadConfig()` instead of using the hardcoded default - this is the actual wiring point through which config file changes take effect.
+- Vitest coverage: IANA CSV parsing (quoted fields, Reserved/Unassigned filtering, non-tcp/udp transports), known-port lookup (iana/custom/both source modes, missing custom file handling), and config loading (defaults-only, project override merge, malformed-YAML error).
+
+### Known limitations
+- `known_ports.refresh_days` is not enforced - the bundled IANA cache is a one-time snapshot (fetched 2026-09-06), not auto-refreshed.
+- `history.retention_days` and `risk_rules.*` are defined in config but not yet consumed - history and risk flags aren't implemented.
+- `logging.audit_log` is defined but nothing writes to it yet - there's no `free`/`explain` command to audit.
+
 ## [0.2.0] - 2026-09-06
 
 ### Added

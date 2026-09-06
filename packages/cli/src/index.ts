@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import { Command } from "commander";
 import { execFile } from "node:child_process";
-import { DEFAULT_CONFIG, scanPorts, type PortEntry } from "@portmind/core";
+import { ConfigError, loadConfig, resolveConfigPaths, scanPorts, type PortEntry } from "@portmind/core";
 import { createWebServer } from "@portmind/web";
 import { renderTable } from "./renderTable.js";
 
 const program = new Command();
 
-program.name("portmind").description("Local-first port scanning, enrichment and history tool").version("0.2.0");
+program.name("portmind").description("Local-first port scanning, enrichment and history tool").version("0.3.0");
 
 interface ListOptions {
   range?: string;
@@ -26,7 +26,8 @@ program
   .action(async (options: ListOptions) => {
     try {
       const range = parseRange(options.range);
-      let entries = await scanPorts({ includeUdp: DEFAULT_CONFIG.scan.includeUdp });
+      const config = await loadConfig();
+      let entries = await scanPorts({ includeUdp: config.scan.includeUdp }, config.knownPorts);
 
       if (range) {
         entries = entries.filter((e) => e.port >= range.min && e.port <= range.max);
@@ -46,8 +47,13 @@ program
         console.log(renderTable(entries));
       }
     } catch (error) {
-      console.error(`portmind list: scan failed - ${(error as Error).message}`);
-      process.exitCode = 1;
+      if (error instanceof ConfigError) {
+        console.error(`portmind list: config error - ${error.message}`);
+        process.exitCode = 2;
+      } else {
+        console.error(`portmind list: scan failed - ${(error as Error).message}`);
+        process.exitCode = 1;
+      }
     }
   });
 
@@ -80,6 +86,35 @@ program
           console.error(`portmind web: could not open browser automatically (${error.message})`);
         }
       });
+    }
+  });
+
+const config = program.command("config").description("Inspect resolved portmind configuration");
+
+config
+  .command("show")
+  .description("Print the resolved config (defaults + user + project merged)")
+  .action(async () => {
+    try {
+      const resolved = await loadConfig();
+      console.log(JSON.stringify(resolved, null, 2));
+    } catch (error) {
+      console.error(`portmind config show: ${(error as Error).message}`);
+      process.exitCode = 2;
+    }
+  });
+
+config
+  .command("path")
+  .description("Print the path(s) to the active config file(s) and whether they exist")
+  .action(async () => {
+    try {
+      const paths = await resolveConfigPaths();
+      console.log(`user:    ${paths.user}${paths.userExists ? "" : " (not found)"}`);
+      console.log(`project: ${paths.project}${paths.projectExists ? "" : " (not found)"}`);
+    } catch (error) {
+      console.error(`portmind config path: ${(error as Error).message}`);
+      process.exitCode = 2;
     }
   });
 
