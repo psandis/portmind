@@ -1,0 +1,53 @@
+{
+  "name": "@portmind/cli",
+  "version": "0.1.0",
+  "description": "Local-first CLI that scans listening ports, enriches them with process/Docker/IANA detail, and remembers what normally runs where.",
+  "keywords": [
+    "cli",
+    "port",
+    "port-scanner",
+    "lsof",
+    "docker",
+    "devtools",
+    "dev-server",
+    "port-conflict",
+    "eaddrinuse"
+  ],
+  "homepage": "https://github.com/psandis/portmind#readme",
+  "bugs": "https://github.com/psandis/portmind/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/psandis/portmind.git",
+    "directory": "packages/cli"
+  },
+  "license": "MIT",
+  "author": "Petri Sandholm",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "bin": {
+    "portmind": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@portmind/core": "workspace:*",
+    "commander": "^15.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  }
+}

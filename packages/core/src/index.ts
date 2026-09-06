@@ -1,0 +1,4 @@
+export type { PortEntry, RiskFlag } from "./types.js";
+export type { PortmindConfig, SshHostConfig, AiField } from "./config.js";
+export { DEFAULT_CONFIG } from "./config.js";
+export { scanPorts, type ScanOptions } from "./scan/index.js";

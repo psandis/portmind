@@ -1,0 +1,45 @@
+{
+  "name": "@portmind/core",
+  "version": "0.1.0",
+  "description": "portmind core - scanning, enrichment, data model, config, history. No UI, no AI dependency.",
+  "homepage": "https://github.com/psandis/portmind#readme",
+  "bugs": "https://github.com/psandis/portmind/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/psandis/portmind.git",
+    "directory": "packages/core"
+  },
+  "license": "MIT",
+  "author": "Petri Sandholm",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.4.1",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
+  }
+}
