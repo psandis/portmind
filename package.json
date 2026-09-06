@@ -1,6 +1,5 @@
 {
   "name": "portmind-monorepo",
-  "private": true,
   "version": "0.1.0",
   "description": "portmind - local-first port scanning, enrichment and history tool",
   "packageManager": "pnpm@9.0.0",
