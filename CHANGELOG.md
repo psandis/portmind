@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-06
+
+### Added
+- `@portmind/web`: local-only web dashboard (Phase 8) - plain Node `http` server bound to `127.0.0.1`, `GET /api/ports` returning the same `PortEntry[]` JSON as `portmind list --json`, and a static vanilla HTML/JS page (no framework, no build step) with a sortable/filterable table and a row-click detail panel.
+- `@portmind/cli`: `portmind web` command (`--port`, `--no-open`) that starts the dashboard and opens the default browser.
+- Vitest coverage for the web server: page route, API route, and 404 handling.
+
+### Fixed
+- Root `package.json` (published to npm as `portmind-monorepo`) was missing `license` and `keywords` - added, along with matching metadata already present on the scoped packages.
+
+### Known limitations
+- The web dashboard's Docker-only/unusual filters have nothing to filter yet, since Docker cross-reference, history, and risk flags aren't implemented. Its "Explain with AI" button is a disabled placeholder pending Phase 9 (AI `explain`).
+- `portmind-monorepo` on npm still has no `bin` field - it is not an installable CLI. The real CLI package, `@portmind/cli`, has not been published.
+
 ## [0.1.0] - 2026-09-06
 
 ### Added

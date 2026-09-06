@@ -1,12 +1,12 @@
 # portmind
 
-[![npm version](https://img.shields.io/npm/v/%40portmind%2Fcli.svg)](https://www.npmjs.com/package/@portmind/cli)
+[![npm version](https://img.shields.io/npm/v/portmind-monorepo.svg)](https://www.npmjs.com/package/portmind-monorepo)
 [![node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
-Local-first CLI that scans listening ports on your machine, enriches them with process/Docker/IANA detail, remembers what *normally* runs on each port, and flags what's unusual — no cloud, no telemetry, no background AI calls.
+Local-first CLI + web dashboard that scans listening ports on your machine, enriches them with process/Docker/IANA detail, remembers what *normally* runs on each port, and flags what's unusual — no cloud, no telemetry, no background AI calls.
 
-> The npm badge above will show "not found" until `@portmind/cli` is actually published. Nothing in this repo has been published yet.
+> `portmind-monorepo` is published on npm (see the badge above), but it has no `bin` field — installing it does not give you a `portmind` command. `@portmind/cli`, the package that actually would, is not published yet.
 
 ## Status
 
@@ -15,8 +15,9 @@ Local-first CLI that scans listening ports on your machine, enriches them with p
 - Each result is enriched with process command line, working directory, and start time (`ps` + `lsof -d cwd`)
 - `--range <min-max>`, `--docker-only`, `--unusual`, and `--json` filters/output modes
 - Table and JSON output share one `PortEntry` type, defined once in `@portmind/core`
+- `portmind web` starts a local-only dashboard (`127.0.0.1`, plain HTML/JS, no framework, no build step) serving the same data as `portmind list --json` over `GET /api/ports`, with a sortable/filterable table and a row-click detail panel
 
-**Not implemented yet** (see [Next steps](#next-steps)): Docker cross-reference, IANA known-port descriptions, local history/"usual" detection, risk flags, `watch`/`free`/`explain`/`history`/`ssh`/`web`/`tui`/`config` commands, and the YAML config loader. Until those land, every `PortEntry.docker`, `.knownService`, and `.riskFlags` will be empty, and `.history.usual` is always `true`.
+**Not implemented yet** (see [Next steps](#next-steps)): Docker cross-reference, IANA known-port descriptions, local history/"usual" detection, risk flags, `watch`/`free`/`explain`/`history`/`ssh`/`tui`/`config` commands, and the YAML config loader. Until those land, every `PortEntry.docker`, `.knownService`, and `.riskFlags` will be empty, and `.history.usual` is always `true` — so the web dashboard's Docker/unusual filters currently have nothing to filter.
 
 See [CHANGELOG.md](./CHANGELOG.md) for a dated record of what shipped when.
 
@@ -60,7 +61,17 @@ PORT   PROTO  PROCESS       PID     DOCKER  USUAL  NOTE
 
 **Exit codes:** `0` success, `1` scan error, `2` config error.
 
-Planned commands not yet implemented: `watch`, `free`, `explain`, `history`, `ssh <host> list|check`, `web`, `tui`, `config show|path`.
+### Web dashboard
+
+```bash
+portmind web                   # starts on http://127.0.0.1:4400 and opens your browser
+portmind web --port 4401       # use a different port for the dashboard itself
+portmind web --no-open         # don't open the browser automatically
+```
+
+Why a plain server + vanilla JS instead of a framework: the dashboard is two routes (the page, and `/api/ports`), it never leaves your machine, and there's no build pipeline to maintain — consistent with the "local-first, no telemetry" design of the rest of the tool. The page polls `/api/ports` on load and on manual refresh (or a 5-second auto-refresh you opt into); clicking a row expands full detail including an "Explain with AI" button that's currently a disabled placeholder, since AI `explain` (Phase 9) isn't built yet.
+
+Planned commands not yet implemented: `watch`, `free`, `explain`, `history`, `ssh <host> list|check`, `tui`, `config show|path`.
 
 ## Storage
 
@@ -123,7 +134,7 @@ packages/
 ├── core/   # scanning, enrichment, data model, config — no UI, no AI dependency
 ├── cli/    # table/JSON output over @portmind/core (implemented)
 ├── tui/    # live terminal dashboard — not started
-├── web/    # local HTML dashboard — not started
+├── web/    # local HTML dashboard (implemented: /api/ports + static page)
 └── ai/     # optional AI deep-search plugin — not started
 ```
 
@@ -138,11 +149,12 @@ Remaining phases, in build order:
 3. **Docker cross-reference** — match `docker ps` output against scanned ports, populate `PortEntry.docker`
 4. **Risk flags** — `bound_all_interfaces`, `unsigned_binary`, `no_known_service`, each independently configurable
 5. **TUI** (`ink` or `blessed` — undecided) — live table with inline `explain`/`free`
-6. **Web dashboard** — local-only HTTP server, `/api/ports`, static HTML/JS frontend
-7. **AI `explain`** (opt-in) — provider abstraction, explicit field allowlist, response caching
-8. **SSH remote support** — `ssh_hosts` config, same `PortEntry` shape with `host` set to the remote name
-9. **Config system** — YAML loader/merge (defaults → user → project), `config show`/`config path`, audit logging for `free`/`explain`
-10. **Polish** — full `--help` text, packaging for `npm install -g @portmind/cli`
+6. **AI `explain`** (opt-in) — provider abstraction, explicit field allowlist, response caching (the web dashboard's "Explain with AI" button is wired up but disabled until this exists)
+7. **SSH remote support** — `ssh_hosts` config, same `PortEntry` shape with `host` set to the remote name
+8. **Config system** — YAML loader/merge (defaults → user → project), `config show`/`config path`, audit logging for `free`/`explain`
+9. **Polish** — full `--help` text, packaging for `npm install -g @portmind/cli`
+
+Web dashboard (was phase 6) is done — see [Status](#status).
 
 Two decisions still open: TUI library (`ink` vs `blessed`), and whether `free` on a Docker-backed port needs anything beyond the interactive stop/kill/cancel prompt already agreed on.
 

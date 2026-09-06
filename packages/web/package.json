@@ -1,24 +1,13 @@
 {
-  "name": "@portmind/cli",
+  "name": "@portmind/web",
   "version": "0.2.0",
-  "description": "Local-first CLI that scans listening ports, enriches them with process/Docker/IANA detail, and remembers what normally runs where.",
-  "keywords": [
-    "cli",
-    "port",
-    "port-scanner",
-    "lsof",
-    "docker",
-    "devtools",
-    "dev-server",
-    "port-conflict",
-    "eaddrinuse"
-  ],
+  "description": "Local-only web dashboard for portmind - static HTML/JS over @portmind/core's /api/ports.",
   "homepage": "https://github.com/psandis/portmind#readme",
   "bugs": "https://github.com/psandis/portmind/issues",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/psandis/portmind.git",
-    "directory": "packages/cli"
+    "directory": "packages/web"
   },
   "license": "MIT",
   "author": "Petri Sandholm",
@@ -29,20 +18,21 @@
   "publishConfig": {
     "access": "public"
   },
-  "bin": {
-    "portmind": "./dist/index.js"
-  },
   "files": [
-    "dist"
+    "dist",
+    "static"
   ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run"
   },
   "dependencies": {
-    "@portmind/core": "workspace:*",
-    "@portmind/web": "workspace:*",
-    "commander": "^15.0.0"
+    "@portmind/core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

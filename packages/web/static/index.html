@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>portmind</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --row-hover: #f3f4f6;
+    --accent: #2563eb;
+    --danger: #b91c1c;
+    --danger-bg: #fef2f2;
+    --panel-bg: #f9fafb;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --fg: #e5e7eb;
+      --muted: #9ca3af;
+      --border: #262b33;
+      --row-hover: #1a1d24;
+      --accent: #60a5fa;
+      --danger: #f87171;
+      --danger-bg: #2a1414;
+      --panel-bg: #161920;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 24px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  .toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .toolbar input[type="text"] {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 13px;
+    width: 140px;
+  }
+  .toolbar label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  button {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--fg);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:hover { background: var(--row-hover); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; cursor: pointer; user-select: none; white-space: nowrap; }
+  th:hover { color: var(--fg); }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover { background: var(--row-hover); }
+  .mono { font-family: var(--mono); }
+  .unusual { color: var(--danger); font-weight: 600; }
+  .empty { color: var(--muted); padding: 24px 0; text-align: center; }
+  .detail {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--panel-bg);
+    display: none;
+  }
+  .detail.open { display: block; }
+  .detail dl { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; margin: 0; }
+  .detail dt { color: var(--muted); }
+  .detail dd { margin: 0; word-break: break-all; }
+  .status { font-size: 12px; color: var(--muted); margin-top: 12px; }
+</style>
+</head>
+<body>
+  <h1>portmind</h1>
+  <p class="sub">Listening ports on <span id="host">localhost</span></p>
+
+  <div class="toolbar">
+    <button id="refresh">Refresh</button>
+    <label><input type="checkbox" id="autoRefresh" /> Auto-refresh (5s)</label>
+    <input type="text" id="rangeFilter" placeholder="Range e.g. 3000-9000" />
+    <label><input type="checkbox" id="dockerOnly" /> Docker only</label>
+    <label><input type="checkbox" id="unusualOnly" /> Unusual only</label>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th data-key="port">PORT</th>
+        <th data-key="protocol">PROTO</th>
+        <th data-key="processName">PROCESS</th>
+        <th data-key="pid">PID</th>
+        <th data-key="docker">DOCKER</th>
+        <th data-key="usual">USUAL</th>
+        <th data-key="note">NOTE</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <div id="empty" class="empty" hidden>No listening ports found.</div>
+
+  <div id="detail" class="detail"></div>
+  <div class="status" id="status"></div>
+
+<script>
+(function () {
+  var state = { entries: [], sortKey: "port", sortDir: 1, selected: null };
+  var rowsEl = document.getElementById("rows");
+  var emptyEl = document.getElementById("empty");
+  var detailEl = document.getElementById("detail");
+  var statusEl = document.getElementById("status");
+  var autoRefreshTimer = null;
+
+  function noteFor(entry) {
+    if (entry.knownService) return entry.knownService.description;
+    if (entry.cwd) return entry.cwd;
+    return "-";
+  }
+
+  function passesFilters(entry) {
+    var range = document.getElementById("rangeFilter").value.trim();
+    if (range) {
+      var m = range.match(/^(\d+)-(\d+)$/);
+      if (m) {
+        var min = parseInt(m[1], 10), max = parseInt(m[2], 10);
+        if (entry.port < min || entry.port > max) return false;
+      }
+    }
+    if (document.getElementById("dockerOnly").checked && !entry.docker) return false;
+    if (document.getElementById("unusualOnly").checked) {
+      if (entry.history.usual && entry.riskFlags.length === 0) return false;
+    }
+    return true;
+  }
+
+  function sortedFiltered() {
+    var list = state.entries.filter(passesFilters);
+    var key = state.sortKey, dir = state.sortDir;
+    list.sort(function (a, b) {
+      var av, bv;
+      if (key === "docker") { av = a.docker ? a.docker.containerName : ""; bv = b.docker ? b.docker.containerName : ""; }
+      else if (key === "usual") { av = a.history.usual ? 1 : 0; bv = b.history.usual ? 1 : 0; }
+      else if (key === "note") { av = noteFor(a); bv = noteFor(b); }
+      else { av = a[key]; bv = b[key]; }
+      if (av === null || av === undefined) av = "";
+      if (bv === null || bv === undefined) bv = "";
+      if (av < bv) return -1 * dir;
+      if (av > bv) return 1 * dir;
+      return 0;
+    });
+    return list;
+  }
+
+  function render() {
+    var list = sortedFiltered();
+    rowsEl.innerHTML = "";
+    emptyEl.hidden = list.length > 0;
+    list.forEach(function (entry, i) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        "<td class='mono'>" + entry.port + "</td>" +
+        "<td>" + entry.protocol + "</td>" +
+        "<td>" + (entry.processName || "-") + "</td>" +
+        "<td class='mono'>" + (entry.pid !== null ? entry.pid : "-") + "</td>" +
+        "<td>" + (entry.docker ? entry.docker.containerName : "-") + "</td>" +
+        "<td class='" + (entry.history.usual ? "" : "unusual") + "'>" + (entry.history.usual ? "yes" : "NO") + "</td>" +
+        "<td>" + noteFor(entry) + "</td>";
+      tr.addEventListener("click", function () { showDetail(entry); });
+      rowsEl.appendChild(tr);
+    });
+  }
+
+  function showDetail(entry) {
+    state.selected = entry;
+    detailEl.classList.add("open");
+    var explainBtn = "<button id='explainBtn'>Explain with AI</button>";
+    detailEl.innerHTML =
+      "<dl>" +
+      "<dt>Host</dt><dd>" + entry.host + "</dd>" +
+      "<dt>Port</dt><dd>" + entry.port + "/" + entry.protocol + "</dd>" +
+      "<dt>Bind address</dt><dd>" + entry.bindAddress + "</dd>" +
+      "<dt>PID</dt><dd>" + (entry.pid !== null ? entry.pid : "-") + "</dd>" +
+      "<dt>Command</dt><dd>" + (entry.cmdline || "-") + "</dd>" +
+      "<dt>Working dir</dt><dd>" + (entry.cwd || "-") + "</dd>" +
+      "<dt>Started</dt><dd>" + (entry.startedAt || "-") + "</dd>" +
+      "<dt>Docker</dt><dd>" + (entry.docker ? entry.docker.containerName + " (" + entry.docker.image + ")" : "-") + "</dd>" +
+      "<dt>Known service</dt><dd>" + (entry.knownService ? entry.knownService.name + " - " + entry.knownService.description : "-") + "</dd>" +
+      "<dt>Risk flags</dt><dd>" + (entry.riskFlags.length ? entry.riskFlags.join(", ") : "none") + "</dd>" +
+      "<dt>AI explanation</dt><dd>" + (entry.aiExplanation || "not run - " + explainBtn) + "</dd>" +
+      "</dl>";
+    var btn = document.getElementById("explainBtn");
+    if (btn) {
+      btn.addEventListener("click", function () {
+        btn.disabled = true;
+        btn.textContent = "AI explain is not implemented yet";
+      });
+    }
+  }
+
+  function load() {
+    statusEl.textContent = "Loading...";
+    fetch("/api/ports")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        state.entries = data;
+        render();
+        statusEl.textContent = "Last updated " + new Date().toLocaleTimeString() + " - " + data.length + " ports";
+      })
+      .catch(function (err) {
+        statusEl.textContent = "Failed to load: " + err.message;
+      });
+  }
+
+  document.querySelectorAll("th[data-key]").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var key = th.getAttribute("data-key");
+      if (state.sortKey === key) state.sortDir *= -1;
+      else { state.sortKey = key; state.sortDir = 1; }
+      render();
+    });
+  });
+
+  document.getElementById("refresh").addEventListener("click", load);
+  document.getElementById("rangeFilter").addEventListener("input", render);
+  document.getElementById("dockerOnly").addEventListener("change", render);
+  document.getElementById("unusualOnly").addEventListener("change", render);
+  document.getElementById("autoRefresh").addEventListener("change", function (e) {
+    if (e.target.checked) {
+      autoRefreshTimer = setInterval(load, 5000);
+    } else if (autoRefreshTimer) {
+      clearInterval(autoRefreshTimer);
+      autoRefreshTimer = null;
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

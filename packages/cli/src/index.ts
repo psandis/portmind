@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { Command } from "commander";
+import { execFile } from "node:child_process";
 import { DEFAULT_CONFIG, scanPorts, type PortEntry } from "@portmind/core";
+import { createWebServer } from "@portmind/web";
 import { renderTable } from "./renderTable.js";
 
 const program = new Command();
 
-program.name("portmind").description("Local-first port scanning, enrichment and history tool").version("0.1.0");
+program.name("portmind").description("Local-first port scanning, enrichment and history tool").version("0.2.0");
 
 interface ListOptions {
   range?: string;
@@ -46,6 +48,38 @@ program
     } catch (error) {
       console.error(`portmind list: scan failed - ${(error as Error).message}`);
       process.exitCode = 1;
+    }
+  });
+
+interface WebOptions {
+  port: string;
+  open: boolean;
+}
+
+program
+  .command("web")
+  .description("Start the local web dashboard")
+  .option("--port <port>", "port for the dashboard itself", "4400")
+  .option("--no-open", "don't open the browser automatically")
+  .action((options: WebOptions) => {
+    const port = Number.parseInt(options.port, 10);
+    if (Number.isNaN(port) || port < 1 || port > 65535) {
+      console.error(`portmind web: invalid --port "${options.port}"`);
+      process.exitCode = 2;
+      return;
+    }
+
+    createWebServer({ port });
+    const url = `http://127.0.0.1:${port}`;
+    console.log(`portmind web: dashboard running at ${url}`);
+
+    if (options.open) {
+      const opener = process.platform === "darwin" ? "open" : "xdg-open";
+      execFile(opener, [url], (error) => {
+        if (error) {
+          console.error(`portmind web: could not open browser automatically (${error.message})`);
+        }
+      });
     }
   });
 
