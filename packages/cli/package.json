@@ -1,6 +1,6 @@
 {
-  "name": "@portmind/cli",
-  "version": "0.3.1",
+  "name": "portmind-cli",
+  "version": "0.3.2",
   "description": "Local-first CLI that scans listening ports, enriches them with process/Docker/IANA detail, and remembers what normally runs where.",
   "keywords": [
     "cli",
@@ -40,8 +40,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@portmind/core": "workspace:*",
-    "@portmind/web": "workspace:*",
+    "portmind-core": "workspace:*",
+    "portmind-web": "workspace:*",
     "commander": "^15.0.0"
   },
   "devDependencies": {

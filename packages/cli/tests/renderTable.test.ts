@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PortEntry } from "@portmind/core";
+import type { PortEntry } from "portmind-core";
 import { renderTable } from "../src/renderTable.js";
 
 function makeEntry(overrides: Partial<PortEntry> = {}): PortEntry {

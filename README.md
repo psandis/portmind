@@ -6,7 +6,7 @@
 
 Local-first CLI + web dashboard that scans listening ports on your machine, enriches them with process/Docker/IANA detail, remembers what *normally* runs on each port, and flags what's unusual — no cloud, no telemetry, no background AI calls.
 
-> `portmind-monorepo` is published on npm (see the badge above), but it has no `bin` field — installing it does not give you a `portmind` command. `@portmind/cli`, the package that actually would, is not published yet.
+> `portmind-monorepo` is published on npm (see the badge above), but it has no `bin` field — installing it does not give you a `portmind` command. `portmind-cli`, the package that actually would, is not published yet.
 
 ## Status
 
@@ -14,7 +14,7 @@ Local-first CLI + web dashboard that scans listening ports on your machine, enri
 - `portmind list` runs a real scan (`lsof`-based) of TCP and UDP listening sockets on macOS/Linux
 - Each result is enriched with process command line, working directory, and start time (`ps` + `lsof -d cwd`)
 - `--range <min-max>`, `--docker-only`, `--unusual`, and `--json` filters/output modes
-- Table and JSON output share one `PortEntry` type, defined once in `@portmind/core`
+- Table and JSON output share one `PortEntry` type, defined once in `portmind-core`
 - `portmind web` starts a local-only dashboard (`127.0.0.1`, plain HTML/JS, no framework, no build step) serving the same data as `portmind list --json` over `GET /api/ports`, with a sortable/filterable table and a row-click detail panel
 - Real known-port descriptions via the official IANA Service Name and Port Number Registry (11,394 entries bundled, fetched and verified from `iana.org` — e.g. port 5432 shows "PostgreSQL Database", not a placeholder)
 - A real, working config file loader — `~/.portmind/config.yaml` (user) and `.portmind.yaml` (project) are both read and merged over the defaults; `portmind config show`/`config path` expose the resolved result and file locations
@@ -153,7 +153,7 @@ The TypeScript shape (`PortmindConfig`), its defaults, and the loader/merge logi
 ```
 packages/
 ├── core/   # scanning, enrichment, data model, config — no UI, no AI dependency
-├── cli/    # table/JSON output over @portmind/core (implemented)
+├── cli/    # table/JSON output over portmind-core (implemented)
 ├── tui/    # live terminal dashboard — not started
 ├── web/    # local HTML dashboard (implemented: /api/ports + static page)
 └── ai/     # optional AI deep-search plugin — not started
@@ -172,7 +172,7 @@ Remaining phases, in build order:
 5. **SSH remote support** — `ssh_hosts` config, same `PortEntry` shape with `host` set to the remote name
 6. **Audit logging** — log every `free`/`explain` action per `logging.audit_log`
 7. **IANA cache auto-refresh** — automate re-fetching the CSV on `known_ports.refresh_days`, rather than the current bundled-once snapshot
-8. **Polish** — full `--help` text, packaging for `npm install -g @portmind/cli`
+8. **Polish** — full `--help` text, packaging for `npm install -g portmind-cli`
 9. **AI explain: real end-to-end verification** — the feature is built and unit-tested with a mocked HTTP layer, but has never actually been called against Anthropic or OpenAI with a real API key. Verifying that happens whenever a key becomes available to test with.
 
 Web dashboard, IANA enrichment, the config file loader, and AI `explain` (untested end-to-end - see above) are done — see [Status](#status).

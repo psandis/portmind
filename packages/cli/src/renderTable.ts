@@ -1,4 +1,4 @@
-import type { PortEntry } from "@portmind/core";
+import type { PortEntry } from "portmind-core";
 
 const COLUMNS = ["PORT", "PROTO", "PROCESS", "PID", "DOCKER", "USUAL", "NOTE"] as const;
 

@@ -8,13 +8,13 @@ import {
   resolveConfigPaths,
   scanPorts,
   type PortEntry,
-} from "@portmind/core";
-import { createWebServer } from "@portmind/web";
+} from "portmind-core";
+import { createWebServer } from "portmind-web";
 import { renderTable } from "./renderTable.js";
 
 const program = new Command();
 
-program.name("portmind").description("Local-first port scanning, enrichment and history tool").version("0.3.1");
+program.name("portmind").description("Local-first port scanning, enrichment and history tool").version("0.3.2");
 
 interface ListOptions {
   range?: string;

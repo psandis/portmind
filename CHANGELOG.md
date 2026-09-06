@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-09-06
+
+### Changed
+- **Renamed all packages from the `@portmind/*` npm scope to unscoped names**: `@portmind/core` -> `portmind-core`, `@portmind/cli` -> `portmind-cli`, `@portmind/web` -> `portmind-web`. The `@portmind` scope was never actually available to publish under - npm scoped names require the scope itself to be an owned npm username or organization, and no `portmind` organization existed under the publishing account. Renaming to unscoped names (same pattern already working for `portmind-monorepo`) avoids a dependency on creating and administering a separate npm organization just to publish. The CLI's `portmind` command name is unaffected - only the npm package names changed, not the `bin` entry.
+- All imports (`from "@portmind/core"` etc.), `package.json` dependency references, and README mentions updated to match.
+
 ## [0.3.1] - 2026-09-06
 
 ### Added

@@ -2,7 +2,7 @@ import { createServer as createHttpServer, type Server } from "node:http";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { scanPorts, loadConfig, explainPort, ConfigError, type PortEntry } from "@portmind/core";
+import { scanPorts, loadConfig, explainPort, ConfigError, type PortEntry } from "portmind-core";
 
 const packageRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const indexHtmlPath = path.join(packageRoot, "static", "index.html");

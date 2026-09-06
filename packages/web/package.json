@@ -1,7 +1,7 @@
 {
-  "name": "@portmind/web",
-  "version": "0.3.1",
-  "description": "Local-only web dashboard for portmind - static HTML/JS over @portmind/core's /api/ports.",
+  "name": "portmind-web",
+  "version": "0.3.2",
+  "description": "Local-only web dashboard for portmind - static HTML/JS over portmind-core's /api/ports.",
   "homepage": "https://github.com/psandis/portmind#readme",
   "bugs": "https://github.com/psandis/portmind/issues",
   "repository": {
@@ -32,7 +32,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@portmind/core": "workspace:*"
+    "portmind-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.4.1",

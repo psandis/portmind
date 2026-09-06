@@ -10,15 +10,15 @@ importers:
 
   packages/cli:
     dependencies:
-      '@portmind/core':
-        specifier: workspace:*
-        version: link:../core
-      '@portmind/web':
-        specifier: workspace:*
-        version: link:../web
       commander:
         specifier: ^15.0.0
         version: 15.0.0
+      portmind-core:
+        specifier: workspace:*
+        version: link:../core
+      portmind-web:
+        specifier: workspace:*
+        version: link:../web
     devDependencies:
       '@types/node':
         specifier: ^26.4.1
@@ -66,7 +66,7 @@ importers:
 
   packages/web:
     dependencies:
-      '@portmind/core':
+      portmind-core:
         specifier: workspace:*
         version: link:../core
     devDependencies:

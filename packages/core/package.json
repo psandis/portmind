@@ -1,6 +1,6 @@
 {
-  "name": "@portmind/core",
-  "version": "0.3.1",
+  "name": "portmind-core",
+  "version": "0.3.2",
   "description": "portmind core - scanning, enrichment, data model, config, history. No UI, no AI dependency.",
   "homepage": "https://github.com/psandis/portmind#readme",
   "bugs": "https://github.com/psandis/portmind/issues",
