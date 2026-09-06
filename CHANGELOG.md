@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - **Renamed all packages from the `@portmind/*` npm scope to unscoped names**: `@portmind/core` -> `portmind-core`, `@portmind/cli` -> `portmind-cli`, `@portmind/web` -> `portmind-web`. The `@portmind` scope was never actually available to publish under - npm scoped names require the scope itself to be an owned npm username or organization, and no `portmind` organization existed under the publishing account. Renaming to unscoped names (same pattern already working for `portmind-monorepo`) avoids a dependency on creating and administering a separate npm organization just to publish. The CLI's `portmind` command name is unaffected - only the npm package names changed, not the `bin` entry.
 - All imports (`from "@portmind/core"` etc.), `package.json` dependency references, and README mentions updated to match.
+- **`portmind-core@0.3.2`, `portmind-web@0.3.2`, and `portmind-cli@0.3.2` published to npm.** `npm install -g portmind-cli` now gives a real, working `portmind` command - confirmed via a live global install (`portmind --version`, `portmind list` both verified working). README's Install section and npm badge updated to point at `portmind-cli` instead of the no-op `portmind-monorepo`, and a "Packages" section added explaining which of the four published packages to actually install.
 
 ## [0.3.1] - 2026-09-06
 

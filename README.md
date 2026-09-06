@@ -1,12 +1,21 @@
 # portmind
 
-[![npm version](https://img.shields.io/npm/v/portmind-monorepo.svg)](https://www.npmjs.com/package/portmind-monorepo)
+[![npm version](https://img.shields.io/npm/v/portmind-cli.svg)](https://www.npmjs.com/package/portmind-cli)
 [![node](https://img.shields.io/badge/node-%3E%3D22-brightgreen)](https://nodejs.org)
 [![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 Local-first CLI + web dashboard that scans listening ports on your machine, enriches them with process/Docker/IANA detail, remembers what *normally* runs on each port, and flags what's unusual — no cloud, no telemetry, no background AI calls.
 
-> `portmind-monorepo` is published on npm (see the badge above), but it has no `bin` field — installing it does not give you a `portmind` command. `portmind-cli`, the package that actually would, is not published yet.
+## Packages
+
+This is a monorepo. Four packages are published on npm, but you only ever install one of them yourself:
+
+| Package | What it is | Install it yourself? |
+|---|---|---|
+| [`portmind-cli`](https://www.npmjs.com/package/portmind-cli) | The actual CLI tool — the only package with a `bin` entry, so it's the only one that gives you a `portmind` command | **Yes**, this is the one |
+| [`portmind-core`](https://www.npmjs.com/package/portmind-core) | The scanning/config/AI engine, no UI code | No — pulled in automatically as `portmind-cli`'s dependency |
+| [`portmind-web`](https://www.npmjs.com/package/portmind-web) | The web dashboard server + page | No — same, a dependency |
+| [`portmind-monorepo`](https://www.npmjs.com/package/portmind-monorepo) | The whole repo published as one blob, from before the package split was set up correctly | No — has no `bin`, installing it does not give you a `portmind` command. Left published as-is rather than unpublished; ignore it. |
 
 ## Status
 
@@ -32,16 +41,19 @@ See [CHANGELOG.md](./CHANGELOG.md) for a dated record of what shipped when.
 - macOS or Linux — `lsof` must be on `$PATH` (this is the only scan backend implemented so far; Linux's `ss` is not wired up yet despite being mentioned in the original design)
 - Docker CLI (`docker`) optional — not yet used, but scans are designed to degrade gracefully once Docker cross-referencing is added
 
-## Install (development)
+## Install
+
+```bash
+npm install -g portmind-cli
+```
+
+This gives you a real `portmind` command on `$PATH` — confirmed working via a live install and `portmind list`/`portmind --version`.
+
+### Install (development, working on this repo instead)
 
 ```bash
 pnpm install
 pnpm build
-```
-
-There's no published package yet, so there's nothing to `npm install -g`. Run the CLI directly from this repo:
-
-```bash
 node packages/cli/dist/index.js list
 ```
 
@@ -155,9 +167,10 @@ packages/
 ├── core/   # scanning, enrichment, data model, config — no UI, no AI dependency
 ├── cli/    # table/JSON output over portmind-core (implemented)
 ├── tui/    # live terminal dashboard — not started
-├── web/    # local HTML dashboard (implemented: /api/ports + static page)
-└── ai/     # optional AI deep-search plugin — not started
+└── web/    # local HTML dashboard (implemented: /api/ports + static page)
 ```
+
+AI explain ended up living inside `core/src/ai/` rather than its own `packages/ai`, since it's a small provider abstraction `core` calls internally - not a separate publishable package, unlike what the original design sketched.
 
 `core` has zero UI and zero AI dependencies. `cli`, `tui`, and `web` are meant to be thin renderers over the same `PortEntry[]` shape — no duplicated scanning logic between them.
 
@@ -172,7 +185,7 @@ Remaining phases, in build order:
 5. **SSH remote support** — `ssh_hosts` config, same `PortEntry` shape with `host` set to the remote name
 6. **Audit logging** — log every `free`/`explain` action per `logging.audit_log`
 7. **IANA cache auto-refresh** — automate re-fetching the CSV on `known_ports.refresh_days`, rather than the current bundled-once snapshot
-8. **Polish** — full `--help` text, packaging for `npm install -g portmind-cli`
+8. **Polish** — full `--help` text with usage examples baked in (`npm install -g portmind-cli` itself is done, see [Install](#install))
 9. **AI explain: real end-to-end verification** — the feature is built and unit-tested with a mocked HTTP layer, but has never actually been called against Anthropic or OpenAI with a real API key. Verifying that happens whenever a key becomes available to test with.
 
 Web dashboard, IANA enrichment, the config file loader, and AI `explain` (untested end-to-end - see above) are done — see [Status](#status).
